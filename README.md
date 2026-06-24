@@ -62,12 +62,81 @@ Base (tasks 0–5)  →  CL stage 1 (task 6)  →  CL stage 2 (task 7)  →  ...
 
 All training uses `cosmos_policy/scripts/train.py`. Set `--nproc_per_node` to your GPU count.
 
-### Stage 0 — Base training
+### Define dataset and experiment config (before training)
+
+Before launching training, define the dataset and experiment config for each stage in
+[`cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py`](cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py).
+Task IDs for each LIBERO suite are listed in
+[`cosmos_policy/config/experiment/libero_task_constants.py`](cosmos_policy/config/experiment/libero_task_constants.py).
+
+**1. Define a dataset**
+
+Add a `LIBERODataset` entry for each training stage. Use `get_replay_tasks(suite_name, task_ids)` to convert task IDs into HDF5 instruction names.
+
+| Field | Base stage (tasks 0–5) | CL stage (new task k) |
+| --- | --- | --- |
+| `current_tasks_ids` | Tasks to train on (e.g. `[0,1,2,3,4,5]`) | New task only (e.g. `[6]`) |
+| `data_dir` | Expert demonstrations for the suite | Same |
+| `er_data_dir` | — | REGEN synthetic rollouts ([Section 3](#3-data-generation-for-regen)) |
+| `replay_tasks` | — | Prior tasks to replay (e.g. tasks 0–k−1) |
+| `max_replay_demos` | — | Cap demos sampled per replay task |
+| `rollout_data_dir` | Optional rollout mixing | Optional rollout mixing for the new task |
+
+Example base-stage dataset:
+
+```python
+libero_goal_suites_base_stage_task_dataset = L(LIBERODataset)(
+    data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "success_only", "libero_goal_regen"),
+    current_tasks_ids=get_replay_tasks("libero_goal", [0, 1, 2, 3, 4, 5]),
+    t5_text_embeddings_path=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "success_only", "t5_embeddings.pkl"),
+    # ... remaining LIBERODataset fields ...
+)
+```
+
+Example CL-stage dataset (REGEN replay of prior tasks + new task):
+
+```python
+libero_goal_suites_cl_stage_task_dataset = L(LIBERODataset)(
+    data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "success_only", "libero_goal_regen"),
+    current_tasks_ids=get_replay_tasks("libero_goal", [6]),
+    er_data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "data_generation_libero_goal_cl_stage1_from_base"),
+    replay_tasks=get_replay_tasks("libero_goal", [0, 1, 2, 3, 4, 5]),
+    max_replay_demos=10,
+    # ... remaining LIBERODataset fields ...
+)
+```
+
+**2. Define an experiment config**
+
+Add a `LazyDict` experiment that wires the dataset into `dataloader_train`, sets `trainer.max_iter`, and points `checkpoint.load_path` at the previous stage (for CL stages):
+
+```python
+cosmos_predict2_2b_480p_libero_base_stage = LazyDict(
+    dict(
+        # ... model, optimizer, scheduler defaults ...
+        trainer=dict(max_iter=40000, ...),
+        checkpoint=dict(
+            load_path=get_checkpoint_path("hf://nvidia/Cosmos-Predict2-2B-Video2World/model-480p-16fps.pt"),
+            ...
+        ),
+        dataloader_train=L(DataLoader)(
+            dataset=libero_goal_suites_base_stage_task_dataset,
+            ...
+        ),
+        job=dict(
+            group="cosmos_v2_finetune",
+            name="cosmos_predict2_2b_480p_libero_goal_base_stage",  # used as the Hydra experiment name
+        ),
+    )
+)
+```
+
+### Stage 0 — Base stage
 
 Train on the first 6 tasks of a suite:
 
 ```bash
-export BASE_DATASETS_DIR=/path/to/parent/of/LIBERO-Cosmos-Policy
+export BASE_DATASETS_DIR=/path/to/LIBERO-Cosmos-Policy
 
 uv run --extra cu128 --group libero --python 3.10 \
   torchrun --nproc_per_node=8 --master_port=12341 -m cosmos_policy.scripts.train \
@@ -77,21 +146,9 @@ uv run --extra cu128 --group libero --python 3.10 \
 
 Checkpoints are saved under `checkpoints/imaginaire4-output/cosmos_policy/cosmos_v2_finetune/<experiment_name>/`.
 
-### Stage k — Continual fine-tuning
+### Stage k — Continual learning stage
 
-Load the previous stage checkpoint and train on the next task. Each CL stage runs for **2000 iterations** by default.
-
-#### Seq-FT (naive sequential fine-tuning)
-
-```bash
-uv run --extra cu128 --group libero --python 3.10 \
-  torchrun --nproc_per_node=8 --master_port=12341 -m cosmos_policy.scripts.train \
-  --config=cosmos_policy/config/config.py -- \
-  experiment=cosmos_predict2_2b_480p_libero_goal_single_task_cl_stage \
-  checkpoint.load_path=/path/to/previous_stage/checkpoints/iter_000002000 \
-  dataloader_train.dataset=libero_goal_suites_single_task_dataset \
-  job.name=my_seqft_cl_stage1
-```
+Load the previous stage checkpoint and train on the new task. Each CL stage runs for **2000 iterations** by default.
 
 #### REGEN (Recurrent Generative Replay)
 
@@ -102,10 +159,10 @@ uv run --extra cu128 --group libero --python 3.10 \
 uv run --extra cu128 --group libero --python 3.10 \
   torchrun --nproc_per_node=8 --master_port=12341 -m cosmos_policy.scripts.train \
   --config=cosmos_policy/config/config.py -- \
-  experiment=cosmos_predict2_2b_480p_libero_goal_single_task_cl_stage \
+  experiment=cosmos_predict2_2b_480p_libero_goal_cl_stage \
   checkpoint.load_path=/path/to/previous_stage/checkpoints/iter_000002000 \
-  dataloader_train.dataset=libero_spatial_suites_cl_stage_task_dataset \
-  job.name=my_regen_cl_stage4
+  dataloader_train.dataset=libero_goal_suites_cl_stage_task_dataset \
+  trainer.grad_accum_iter=6   dataloader_train.batch_size=40
 ```
 
 ---
@@ -122,23 +179,13 @@ bash data_generation.sh \
   <dataset_stats_path>
 ```
 
-**Example** — generate rollouts from the base model on tasks 0–5:
-
-```bash
-bash data_generation.sh \
-  libero_goal \
-  cosmos_predict2_2b_480p_libero_goal_base_stage \
-  eval-on-tasks0-5 \
-  cl_base_stage_libero_goal_success_only
-```
-
 Generated HDF5 files are saved under `LIBERO-Cosmos-Policy/`. Point `er_data_dir` in the dataset config to this directory for REGEN training.
 
 ---
 
 ## 4. Evaluation
 
-### Standard evaluation (Seq-FT / REGEN)
+### Standard evaluation (REGEN)
 
 ```bash
 bash inference.sh \
@@ -147,23 +194,12 @@ bash inference.sh \
   <run_id_note> \
   <dataset_stats_path>
 ```
-
-**Example:**
-
-```bash
-bash inference.sh \
-  libero_object \
-  cosmos_predict2_2b_480p_libero_object_seqft_cl_stage1 \
-  tasks-0-6 \
-  LIBERO-Cosmos-Policy/cl_base_stage_libero_object_success_only/dataset_statistics.json
-```
-
 Or run the eval script directly:
 
 ```bash
 uv run --extra cu128 --group libero --python 3.10 \
   python -m cosmos_policy.experiments.robot.libero.run_libero_eval \
-    --config cosmos_predict2_2b_480p_libero_single_task_inference_only \
+    --config cosmos_predict2_2b_480p_libero_cl_stage_inference_only \
     --ckpt_path /path/to/checkpoints/iter_000002000/model.pt \
     --config_file cosmos_policy/config/config.py \
     --task_suite_name libero_object \
@@ -186,13 +222,6 @@ uv run --extra cu128 --group libero --python 3.10 \
     --save_rollout_video True \
     --local_log_dir cosmos_policy/experiments/robot/libero/logs/
 ```
-
-**Eval notes:**
-- Default: 50 trials per task. Use `--num_trials_per_task` to change.
-- Seeds `{195, 196, 197}` with `--deterministic True` for reproducibility.
-- Logs are written to `cosmos_policy/experiments/robot/libero/logs/`.
-- Rollout videos are saved when `--save_rollout_video True`.
-
 ---
 
 ## 5. Project Structure
@@ -213,7 +242,8 @@ REGEN/
 
 ## Acknowledgments
 
-Our base **world action model (WAM)** policy is built on [Cosmos Policy](https://github.com/NVlabs/cosmos-policy). Continual learning experiments are conducted on the [LIBERO](https://libero-project.github.io/) simulation benchmark.
+
+This work builds on [Cosmos-Policy](https://github.com/NVlabs/cosmos-policy) and the [LIBERO](https://libero-project.github.io/) benchmark. We thank the authors for their open-source contributions.
 
 ---
 
@@ -224,8 +254,7 @@ If you find our research useful, please consider citing us:
 ```bibtex
 @article{govind2026world,
   title={World Action Models Enable Continual Imitation Learning with Recurrent Generative Replays},
-  author={Govind, Manish},
+  author={},
   year={2026},
-  note={Code available at \url{https://github.com/ManishGovind/REGEN}}
 }
 ```
