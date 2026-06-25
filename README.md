@@ -222,21 +222,6 @@ uv run --extra cu128 --group libero --python 3.10 \
     --save_rollout_video True \
     --local_log_dir cosmos_policy/experiments/robot/libero/logs/
 ```
----
-
-## 5. Project Structure
-
-```
-REGEN/
-├── cosmos_policy/
-│   ├── config/experiment/cosmos_policy_experiment_configs.py  # Training configs
-│   ├── datasets/                   # LIBERO dataset loaders (REGEN support)
-│   ├── experiments/robot/libero/   # Evaluation scripts & logs
-│   └── scripts/train.py            # Main training entry point
-├── data_generation.sh              # REGEN rollout generation
-├── inference.sh                    # Standard LIBERO evaluation
-└── LIBERO.md                       # Upstream Cosmos Policy LIBERO docs
-```
 
 ---
 
