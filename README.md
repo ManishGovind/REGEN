@@ -172,27 +172,19 @@ uv run --extra cu128 --group libero --python 3.10 \
 Generate synthetic demonstration rollouts using the world action model's predictions (recurrent generative replay):
 
 ```bash
-bash data_generation.sh \
-  <task_suite_name> \
-  <checkpoint_experiment_name> \
-  <task_ids_to_run> \
-  <dataset_stats_path>
+bash data_generation.sh  <task_suite_name>  <checkpoint_experiment_name> <task_ids_to_run> <dataset_stats_path>
 ```
 
 Generated HDF5 files are saved under `LIBERO-Cosmos-Policy/`. Point `er_data_dir` in the dataset config to this directory for REGEN training.
 
 ---
 
-## 4. Evaluation
+## 4. Inference on LIBERO Benchmark
 
-### Standard evaluation (REGEN)
 
 ```bash
 bash inference.sh \
-  <task_suite_name> \
-  <checkpoint_experiment_name> \
-  <run_id_note> \
-  <dataset_stats_path>
+  <task_suite_name> <checkpoint_experiment_name> <run_id_note> <dataset_stats_path>
 ```
 Or run the eval script directly:
 
@@ -228,7 +220,7 @@ uv run --extra cu128 --group libero --python 3.10 \
 ## Acknowledgments
 
 
-This work builds on [Cosmos-Policy](https://github.com/NVlabs/cosmos-policy) and the [LIBERO](https://libero-project.github.io/) benchmark. We thank the authors for their open-source contributions.
+This work builds on [Cosmos-Policy](https://github.com/NVlabs/cosmos-policy) and [LIBERO](https://libero-project.github.io/) benchmark. We thank the authors for their open-source contributions.
 
 ---
 
