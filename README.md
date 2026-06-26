@@ -229,9 +229,13 @@ This work builds on [Cosmos-Policy](https://github.com/NVlabs/cosmos-policy) and
 If you find our research useful, please consider citing us:
 
 ```bibtex
-@article{govind2026world,
-  title={World Action Models Enable Continual Imitation Learning with Recurrent Generative Replays},
-  author={},
-  year={2026},
+@misc{govind2026worldactionmodelsenable,
+      title={World Action Models Enable Continual Imitation Learning with Recurrent Generative Replays}, 
+      author={Manish Kumar Govind and Dominick Reilly and Smit Patel and Hieu Le and Srijan Das},
+      year={2026},
+      eprint={2606.27374},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2606.27374}, 
 }
 ```
