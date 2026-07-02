@@ -102,7 +102,7 @@ All training uses `cosmos_policy/scripts/train.py`. Set `--nproc_per_node` to yo
 
 ### Define dataset and experiment config (before training)
 
-Before launching training, define the dataset and experiment config for each stage in
+Before training, define the dataset and experiment config for each stage in
 [`cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py`](cosmos_policy/config/experiment/cosmos_policy_experiment_configs.py).
 Task IDs for each LIBERO suite are listed in
 [`cosmos_policy/config/experiment/libero_task_constants.py`](cosmos_policy/config/experiment/libero_task_constants.py).
@@ -115,7 +115,7 @@ Add a `LIBERODataset` entry for each training stage. Use `get_replay_tasks(suite
 | --- | --- | --- |
 | `current_tasks_ids` | Tasks to train on (e.g. `[0,1,2,3,4,5]`) | New task only (e.g. `[6]`) |
 | `data_dir` | Expert demonstrations for the suite | Same |
-| `er_data_dir` | — | REGEN synthetic rollouts ([REGEN Data Generation](#regen-data-generation)) |
+| `er_data_dir` | — | REGEN pseudo demonstrations for the replay tasks  ([REGEN Data Generation](#regen-data-generation)) |
 | `replay_tasks` | — | Prior tasks to replay (e.g. tasks 0–k−1) |
 | `max_replay_demos` | — | Cap demos sampled per replay task |
 | `rollout_data_dir` | Optional rollout mixing | Optional rollout mixing for the new task |
@@ -235,7 +235,7 @@ uv run --extra cu128 --group libero --python 3.10 \
     --task_suite_name libero_object \
     --task_ids_to_run "0,1,2,3,4,5,6" \
     --dataset_stats_path /path/to/dataset_statistics.json \
-    --t5_text_embeddings_path LIBERO-Cosmos-Policy/success_only/t5_embeddings.pkl \
+    --t5_text_embeddings_path /path/to/precomputed/t5_embeddings.pkl \
     --use_wrist_image True \
     --use_proprio True \
     --normalize_proprio True \
