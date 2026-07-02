@@ -1,9 +1,47 @@
 # World Action Models Enable Continual Imitation Learning with Recurrent Generative Replays
 
+<p>
+  <a href="https://arxiv.org/abs/2606.27374">
+    <img src="https://img.shields.io/badge/Paper-arXiv-b31b1b?style=flat&logo=arxiv" />
+  </a>
+  <a href="https://manishgovind.github.io/REGEN/">
+    <img src="https://img.shields.io/badge/Website-Project%20Page-2ea44f?style=flat" />
+  </a>
+</p>
 
+World Action Models (WAMs) can generate future visual observations, not just predict robot actions. We build on this generative capability to propose **Recurrent Generative Replay (REGEN)**, a continual imitation learning framework where the WAM recursively synthesizes pseudo-replay trajectories, conditioned only on prior task instructions and current-task observations, so a policy can rehearse previously learned tasks without storing their original demonstrations to mitigate catastrophic forgetting.
+---
 
+## Index
 
-## 1. Environment Setup
+- [File Structure](#file-structure)
+- [Environment Setup](#environment-setup)
+- [Continual Learning Pipeline](#continual-learning-pipeline)
+- [REGEN Data Generation](#regen-data-generation)
+- [Inference on LIBERO Benchmark](#4-inference-on-libero-benchmark)
+- [Acknowledgements](#acknowledgements)
+- [Citation](#citation)
+
+---
+
+## File Structure
+
+```
+REGEN/
+├── cosmos_policy/
+│   ├── experiments/robot/libero/    # Evaluation & rollout generation scripts
+│   │   └── run_libero_eval.py       # LIBERO benchmark evaluation
+│   ├── scripts/
+│   │   └── train.py                 # Main training entry point
+│   └── _src/                        # Cosmos Policy core (imaginaire, predict2)
+├── data_generation.sh               # REGEN rollout generation entrypoint
+├── inference.sh                     # LIBERO evaluation entrypoint
+└── docker/                          # Docker build files
+```
+
+---
+
+## Environment Setup
 
 ### Option A: Docker (recommended)
 
@@ -52,7 +90,7 @@ export BASE_DATASETS_DIR=$(pwd)
 
 ---
 
-## 2. Continual Learning Pipeline
+## Continual Learning Pipeline
 
 Tasks are learned **one at a time** across LIBERO suites (e.g. `libero_goal`, `libero_object`, `libero_spatial`). Each suite has 10 tasks; we typically train a **base model on tasks 0–5**, then add tasks 6–9 sequentially.
 
@@ -77,7 +115,7 @@ Add a `LIBERODataset` entry for each training stage. Use `get_replay_tasks(suite
 | --- | --- | --- |
 | `current_tasks_ids` | Tasks to train on (e.g. `[0,1,2,3,4,5]`) | New task only (e.g. `[6]`) |
 | `data_dir` | Expert demonstrations for the suite | Same |
-| `er_data_dir` | — | REGEN synthetic rollouts ([Section 3](#3-data-generation-for-regen)) |
+| `er_data_dir` | — | REGEN synthetic rollouts ([REGEN Data Generation](#regen-data-generation)) |
 | `replay_tasks` | — | Prior tasks to replay (e.g. tasks 0–k−1) |
 | `max_replay_demos` | — | Cap demos sampled per replay task |
 | `rollout_data_dir` | Optional rollout mixing | Optional rollout mixing for the new task |
@@ -152,7 +190,7 @@ Load the previous stage checkpoint and train on the new task. Each CL stage runs
 
 #### REGEN (Recurrent Generative Replay)
 
-1. **Generate synthetic rollouts** from the current world action model (see [Section 3](#3-data-generation-for-regen)).
+1. **Generate synthetic rollouts** from the current world action model (see [REGEN Data Generation](#regen-data-generation)).
 2. **Train** with the generated data in `er_data_dir`:
 
 ```bash
@@ -167,7 +205,7 @@ uv run --extra cu128 --group libero --python 3.10 \
 
 ---
 
-## 3. Data Generation for REGEN
+## REGEN Data Generation
 
 Generate synthetic demonstration rollouts using the world action model's predictions (recurrent generative replay):
 
@@ -217,9 +255,7 @@ uv run --extra cu128 --group libero --python 3.10 \
 
 ---
 
-## Acknowledgments
-
-
+## Acknowledgements
 This work builds on [Cosmos-Policy](https://github.com/NVlabs/cosmos-policy) and [LIBERO](https://libero-project.github.io/) benchmark. We thank the authors for their open-source contributions.
 
 ---
