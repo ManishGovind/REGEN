@@ -2,14 +2,15 @@
 
 <p>
   <a href="https://arxiv.org/abs/2606.27374">
-    <img src="https://img.shields.io/badge/Paper-arXiv-b31b1b?style=flat&logo=arxiv" />
+    <img src="https://img.shields.io/badge/Paper-arXiv?style=flat&logo=arxiv" />
   </a>
   <a href="https://manishgovind.github.io/REGEN/">
     <img src="https://img.shields.io/badge/Website-Project%20Page-2ea44f?style=flat" />
   </a>
 </p>
 
-World Action Models (WAMs) can generate future visual observations, not just predict robot actions. We build on this generative capability to propose **Recurrent Generative Replay (REGEN)**, a continual imitation learning framework where the WAM recursively synthesizes pseudo-replay trajectories, conditioned only on prior task instructions and current-task observations, so a policy can rehearse previously learned tasks without storing their original demonstrations to mitigate catastrophic forgetting.
+
+World Action Models (WAMs) can generate future visual observations, not just predict robot actions. We build on this generative capability to propose Recurrent Generative Replay (REGEN), a continual imitation learning framework where the WAM recursively synthesizes pseudo-replay trajectories, conditioned only on prior task instructions and current-task observations, so a policy can rehearse previously learned tasks without storing their original demonstrations to mitigate catastrophic forgetting.
 ---
 
 ## Index
@@ -217,7 +218,7 @@ Generated HDF5 files are saved under `LIBERO-Cosmos-Policy/`. Point `er_data_dir
 
 ---
 
-## 4. Inference on LIBERO Benchmark
+## Inference on LIBERO Benchmark
 
 
 ```bash
