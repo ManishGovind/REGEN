@@ -2,7 +2,7 @@
 
 <p>
   <a href="https://arxiv.org/abs/2606.27374">Paper</a>
-  <a href="https://manishgovind.github.io/REGEN/"><img src="https://img.shields.io/badge/Website-Project%20Page-2ea44f?style=flat" alt="Website" /></a>
+  <a href="https://manishgovind.github.io/REGEN/">Project Page</a>
 </p>
 
 
