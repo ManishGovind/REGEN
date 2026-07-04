@@ -63,7 +63,7 @@ class LIBERODataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        er_data_dir: str = "",
+        replay_data_dir: str = "",
         chunk_size: int = 8,
         final_image_size: int = 224,
         t5_text_embeddings_path: str = "",
@@ -124,7 +124,7 @@ class LIBERODataset(Dataset):
                 ``max_expert_demos_per_task_file`` alone (if set).
         """
         self.data_dir = data_dir
-        self.er_data_dir = er_data_dir
+        self.replay_data_dir = replay_data_dir
         self.chunk_size = chunk_size
         self.final_image_size = final_image_size
         self.t5_text_embeddings_path = t5_text_embeddings_path
@@ -174,8 +174,8 @@ class LIBERODataset(Dataset):
         # Get all HDF5 files in data directory
         hdf5_files = get_hdf5_files(data_dir)
 
-        if self.er_data_dir != "":
-            er_hdf5_files = get_hdf5_files(self.er_data_dir)
+        if self.replay_data_dir != "":
+            er_hdf5_files = get_hdf5_files(self.replay_data_dir)
             if self.replay_tasks is not None:
                 er_hdf5_files = [file for file in er_hdf5_files if instruction_from_hdf5_filename(file) in self.replay_tasks]
             if self.max_replay_demos is not None:
@@ -324,7 +324,7 @@ class LIBERODataset(Dataset):
 
         # Calculate dataset statistics if the stats file doesn't exist
         self.dataset_stats = load_or_compute_dataset_statistics(
-            data_dir=self.er_data_dir if self.er_data_dir else self.data_dir,
+            data_dir=self.replay_data_dir if self.replay_data_dir else self.data_dir,
             data=self.data,
             calculate_dataset_statistics_func=calculate_dataset_statistics,
         )
@@ -338,7 +338,7 @@ class LIBERODataset(Dataset):
 
             # Calculate post-normalization action statistics
             self.dataset_stats_post_norm = load_or_compute_post_normalization_statistics(
-                data_dir=self.er_data_dir if self.er_data_dir else self.data_dir,
+                data_dir=self.replay_data_dir if self.replay_data_dir else self.data_dir,
                 data=self.data,
                 calculate_dataset_statistics_func=calculate_dataset_statistics,
             )

@@ -112,7 +112,7 @@ Add a `LIBERODataset` entry for each training stage. Use `get_replay_tasks(suite
 | --- | --- | --- |
 | `current_tasks_ids` | Tasks to train on (e.g. `[0,1,2,3,4,5]`) | New task only (e.g. `[6]`) |
 | `data_dir` | Expert demonstrations for the suite | Same |
-| `er_data_dir` | — | REGEN pseudo demonstrations for the replay tasks  ([REGEN Data Generation](#regen-data-generation)) |
+| `replay_data_dir` | — | REGEN pseudo demonstrations for the replay tasks  ([REGEN Data Generation](#regen-data-generation)) |
 | `replay_tasks` | — | Prior tasks to replay (e.g. tasks 0–k−1) |
 | `max_replay_demos` | — | Cap demos sampled per replay task |
 | `rollout_data_dir` | Optional rollout mixing | Optional rollout mixing for the new task |
@@ -134,7 +134,7 @@ Example CL-stage dataset (REGEN replay of prior tasks + new task):
 libero_goal_suites_cl_stage_task_dataset = L(LIBERODataset)(
     data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "success_only", "libero_goal_regen"),
     current_tasks_ids=get_replay_tasks("libero_goal", [6]),
-    er_data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "data_generation_libero_goal_cl_stage1_from_base"),
+    replay_data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "data_generation_libero_goal_cl_stage1_from_base"),
     replay_tasks=get_replay_tasks("libero_goal", [0, 1, 2, 3, 4, 5]),
     max_replay_demos=10,
     # ... remaining LIBERODataset fields ...
@@ -188,7 +188,7 @@ Load the previous stage checkpoint and train on the new task. Each CL stage runs
 #### REGEN (Recurrent Generative Replay)
 
 1. **Generate synthetic rollouts** from the current world action model (see [REGEN Data Generation](#regen-data-generation)).
-2. **Train** with the generated data in `er_data_dir`:
+2. **Train** with the generated data in `replay_data_dir`:
 
 ```bash
 uv run --extra cu128 --group libero --python 3.10 \
@@ -210,7 +210,7 @@ Generate synthetic demonstration rollouts using the world action model's predict
 bash data_generation.sh  <task_suite_name>  <checkpoint_experiment_name> <task_ids_to_run> <dataset_stats_path>
 ```
 
-Generated HDF5 files are saved under `LIBERO-Cosmos-Policy/`. Point `er_data_dir` in the dataset config to this directory for REGEN training.
+Generated demonstrations in HDF5 files are saved under `LIBERO-Cosmos-Policy/`. Point `replay_data_dir` in the dataset config to this directory for REGEN training.
 
 ---
 

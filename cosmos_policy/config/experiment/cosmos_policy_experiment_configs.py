@@ -88,7 +88,7 @@ libero_goal_suites_base_stage_task_dataset = L(LIBERODataset)(
 libero_goal_suites_cl_stage_task_dataset = L(LIBERODataset)(
     data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "success_only", "libero_goal_regen"),
     current_tasks_ids = get_replay_tasks("libero_goal", [7]),
-    er_data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "data_generation_libero_goal_cl_stage2_from_cl_stage1"),  # Successful demos
+    replay_data_dir=os.path.join(BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "data_generation_libero_goal_cl_stage2_from_cl_stage1"),  # Successful demos
     t5_text_embeddings_path=os.path.join(
         BASE_DATASETS_DIR, "LIBERO-Cosmos-Policy", "success_only", "t5_embeddings.pkl"
     ),
