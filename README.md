@@ -1,12 +1,8 @@
 # World Action Models Enable Continual Imitation Learning with Recurrent Generative Replays
 
 <p>
-  <a href="https://arxiv.org/abs/2606.27374">
-    <img src="https://img.shields.io/badge/Paper-arXiv-b31b1b?style=flat&logo=arxiv"/>
-  </a>&nbsp
-  <a href="https://manishgovind.github.io/REGEN/">
-    <img src="https://img.shields.io/badge/Website-Project%20Page-2ea44f?style=flat"/>
-  </a>&nbsp
+  <a href="https://arxiv.org/abs/2606.27374"><img src="https://img.shields.io/badge/Paper-arXiv-b31b1b?style=flat&logo=arxiv" alt="Paper" /></a>
+  <a href="https://manishgovind.github.io/REGEN/"><img src="https://img.shields.io/badge/Website-Project%20Page-2ea44f?style=flat" alt="Website" /></a>
 </p>
 
 
