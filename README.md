@@ -1,8 +1,9 @@
 # World Action Models Enable Continual Imitation Learning with Recurrent Generative Replays
 
 <p>
-  <a href="https://arxiv.org/abs/2606.27374">Paper</a>&nbsp| 
-  <a href="https://manishgovind.github.io/REGEN/">Project Page</a>
+  <a href="https://arxiv.org/abs/2606.27374">Paper</a>&nbsp;|
+  <a href="https://manishgovind.github.io/REGEN/">Project Page</a>&nbsp;|
+  <a href="https://huggingface.co/mgovind7/REGEN">Models</a>
 </p>
 
 
@@ -13,9 +14,10 @@
 
 - [File Structure](#file-structure)
 - [Environment Setup](#environment-setup)
+- [Model Checkpoints](#model-checkpoints)
+- [Inference on LIBERO Benchmark](#inference-on-libero-benchmark)
 - [Continual Learning Pipeline](#continual-learning-pipeline)
 - [REGEN Data Generation](#regen-data-generation)
-- [Inference on LIBERO Benchmark](#4-inference-on-libero-benchmark)
 - [Acknowledgements](#acknowledgements)
 - [Citation](#citation)
 
@@ -33,6 +35,8 @@ REGEN/
 │   └── _src/                        # Cosmos Policy core (imaginaire, predict2)
 ├── data_generation.sh               # REGEN rollout generation entrypoint
 ├── inference.sh                     # LIBERO evaluation entrypoint
+├── convert_checkpoint.sh            # Convert DCP checkpoints → model.pt
+├── convert_distcp.py                # DCP → PyTorch converter used by convert_checkpoint.sh
 └── docker/                          # Docker build files
 ```
 
@@ -83,6 +87,94 @@ uv sync --extra cu128 --group libero --python 3.10
 ```bash
 hf download nvidia/LIBERO-Cosmos-Policy --repo-type dataset --local-dir LIBERO-Cosmos-Policy
 export BASE_DATASETS_DIR=$(pwd)
+```
+
+---
+
+## Model Checkpoints
+
+We release the REGEN weights for all continual learning stages on the LIBERO benchmark: **[mgovind7/REGEN](https://huggingface.co/mgovind7/REGEN)**.
+
+Repo layout:
+
+```
+REGEN/
+├── Libero-goal/
+│   ├── base-stage/{model.pt,dataset_statistics.json}
+│   ├── cl-stage1/...
+│   ├── cl-stage2/...
+│   ├── cl-stage3/...
+│   └── cl-stage4/...
+├── Libero-object/
+│   └── ...
+└── Libero-spatial/
+    └── ...
+```
+
+### Download all checkpoints
+
+```bash
+pip install -U "huggingface_hub[cli]"
+
+hf download mgovind7/REGEN --local-dir  checkpoints
+```
+
+### Download one suite
+
+```bash
+# LIBERO-Goal only
+hf download mgovind7/REGEN --include "Libero-goal/*" --local-dir checkpoints
+
+# LIBERO-Object only
+hf download mgovind7/REGEN --include "Libero-object/*" --local-dir checkpoints
+
+# LIBERO-Spatial only
+hf download mgovind7/REGEN --include "Libero-spatial/*" --local-dir checkpoints
+```
+
+Point evaluation to the downloaded files, e.g.:
+
+```bash
+--ckpt_path checkpoints/Libero-goal/cl-stage1/model.pt \
+--dataset_stats_path checkpoints/Libero-goal/cl-stage4/dataset_statistics.json
+```
+
+---
+
+## Inference on LIBERO Benchmark
+
+
+```bash
+bash inference.sh \
+  <task_suite_name> <checkpoint_experiment_name> <run_id_note> <dataset_stats_path>
+```
+Or run the eval script directly:
+
+```bash
+uv run --extra cu128 --group libero --python 3.10 \
+  python -m cosmos_policy.experiments.robot.libero.run_libero_eval \
+    --config cosmos_predict2_2b_480p_libero_cl_stage_inference_only \
+    --ckpt_path /path/to/checkpoints/model.pt \
+    --config_file cosmos_policy/config/config.py \
+    --task_suite_name libero_object \
+    --task_ids_to_run "0,1,2,3,4,5,6" \
+    --dataset_stats_path /path/to/dataset_statistics.json \
+    --t5_text_embeddings_path /path/to/precomputed/t5_embeddings.pkl \
+    --use_wrist_image True \
+    --use_proprio True \
+    --normalize_proprio True \
+    --unnormalize_actions True \
+    --trained_with_image_aug True \
+    --chunk_size 16 \
+    --num_open_loop_steps 16 \
+    --num_trials_per_task 50 \
+    --seed 195 \
+    --deterministic True \
+    --num_denoising_steps_action 5 \
+    --use_jpeg_compression True \
+    --flip_images True \
+    --save_rollout_video True \
+    --local_log_dir cosmos_policy/experiments/robot/libero/logs/
 ```
 
 ---
@@ -179,7 +271,6 @@ uv run --extra cu128 --group libero --python 3.10 \
   experiment=cosmos_predict2_2b_480p_libero_goal_base_stage
 ```
 
-Checkpoints are saved under `checkpoints/imaginaire4-output/cosmos_policy/cosmos_v2_finetune/<experiment_name>/`.
 
 ### Stage k — Continual learning stage
 
@@ -200,6 +291,21 @@ uv run --extra cu128 --group libero --python 3.10 \
   trainer.grad_accum_iter=6   dataloader_train.batch_size=40
 ```
 
+
+Model checkpoints are saved in DCP format under `iter_*/model/`. Convert them to `model.pt` before evaluation :
+
+```bash
+# Convert all iters under a run's checkpoints directory
+bash convert_checkpoint.sh /path/to/<experiment_name>/checkpoints
+
+# Or convert one iter manually
+python convert_distcp.py \
+  /path/to/checkpoints/iter_000002000/model \
+  /path/to/checkpoints/iter_000002000
+# → writes model.pt next to the DCP model/ folder
+```
+
+
 ---
 
 ## REGEN Data Generation
@@ -211,44 +317,6 @@ bash data_generation.sh  <task_suite_name>  <checkpoint_experiment_name> <task_i
 ```
 
 Generated demonstrations in HDF5 files are saved under `LIBERO-Cosmos-Policy/`. Point `replay_data_dir` in the dataset config to this directory for REGEN training.
-
----
-
-## Inference on LIBERO Benchmark
-
-
-```bash
-bash inference.sh \
-  <task_suite_name> <checkpoint_experiment_name> <run_id_note> <dataset_stats_path>
-```
-Or run the eval script directly:
-
-```bash
-uv run --extra cu128 --group libero --python 3.10 \
-  python -m cosmos_policy.experiments.robot.libero.run_libero_eval \
-    --config cosmos_predict2_2b_480p_libero_cl_stage_inference_only \
-    --ckpt_path /path/to/checkpoints/iter_000002000/model.pt \
-    --config_file cosmos_policy/config/config.py \
-    --task_suite_name libero_object \
-    --task_ids_to_run "0,1,2,3,4,5,6" \
-    --dataset_stats_path /path/to/dataset_statistics.json \
-    --t5_text_embeddings_path /path/to/precomputed/t5_embeddings.pkl \
-    --use_wrist_image True \
-    --use_proprio True \
-    --normalize_proprio True \
-    --unnormalize_actions True \
-    --trained_with_image_aug True \
-    --chunk_size 16 \
-    --num_open_loop_steps 16 \
-    --num_trials_per_task 50 \
-    --seed 195 \
-    --deterministic True \
-    --num_denoising_steps_action 5 \
-    --use_jpeg_compression True \
-    --flip_images True \
-    --save_rollout_video True \
-    --local_log_dir cosmos_policy/experiments/robot/libero/logs/
-```
 
 ---
 
